@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ user.username }} - AVITA{% endblock %}
+
+{% block content %}
+<div class="user-profile-page">
+    <div class="container">
+        <div class="user-profile-header">
+            <div class="user-avatar-large">
+                <img src="{{ url_for('static', filename='uploads/' + (user.avatar or 'default_avatar.png')) }}" alt="{{ user.username }}" onerror="this.src='https://ui-avatars.com/api/?name={{ user.username }}&background=random&size=150'">
+            </div>
+            <div class="user-info-block">
+                <h1>{{ user.username }}</h1>
+                <div class="user-badges">
+                    {% if user.role == 'master' %}
+                        <span class="badge master"><i class="fas fa-tools"></i> Мастер</span>
+                    {% endif %}
+                    {% if user.is_verified %}
+                        <span class="badge verified"><i class="fas fa-check-circle"></i> Проверенный</span>
+                    {% endif %}
+                </div>
+                {% if user.location %}
+                    <p class="user-location"><i class="fas fa-map-marker-alt"></i> {{ user.location }}</p>
+                {% endif %}
+                <p class="user-since">На AVITA с {{ user.created_at.strftime('%B %Y') }}</p>
+                {% if user.about %}
+                    <p class="user-about">{{ user.about }}</p>
+                {% endif %}
+            </div>
+            <div class="user-actions">
+                {% if current_user.is_authenticated and current_user.id != user.id %}
+                    <a href="{{ url_for('chat', user_id=user.id) }}" class="btn btn-primary">
+                        <i class="fas fa-comment-dots"></i> Написать
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="user-ads-section">
+            <h2>Объявления пользователя <span class="count">{{ user_ads|length }}</span></h2>
+            
+            {% if user_ads %}
+            <div class="ads-grid">
+                {% for ad in user_ads %}
+                <a href="{{ url_for('ad_detail', ad_id=ad.id) }}" class="ad-card">
+                    <div class="ad-image">
+                        {% if ad.images %}
+                            <img src="{{ url_for('static', filename='uploads/' + ad.images.split(',')[0]) }}" alt="{{ ad.title }}" onerror="this.src='https://via.placeholder.com/300x200?text=Нет+фото'">
+                        {% else %}
+                            <img src="https://via.placeholder.com/300x200?text=Нет+фото" alt="No image">
+                        {% endif %}
+                    </div>
+                    <div class="ad-info">
+                        <h3 class="ad-title">{{ ad.title }}</h3>
+                        <p class="ad-price">
+                            {% if ad.price %}
+                                {{ "{:,.0f}".format(ad.price).replace(",", " ") }} ₽
+                            {% else %}
+                                Цена не указана
+                            {% endif %}
+                        </p>
+                        <div class="ad-meta">
+                            <span><i class="fas fa-clock"></i> {{ ad.created_at.strftime('%d.%m.%Y') }}</span>
+                        </div>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-box-open"></i>
+                <p>У пользователя пока нет активных объявлений</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

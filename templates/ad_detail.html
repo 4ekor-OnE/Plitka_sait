@@ -1,0 +1,304 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ ad.title }} - AVITA{% endblock %}
+
+{% block content %}
+<div class="ad-detail-page">
+    <div class="container">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb">
+            <a href="{{ url_for('index') }}">Главная</a>
+            <i class="fas fa-chevron-right"></i>
+            {% if ad.category.parent %}
+                <a href="{{ url_for('category', slug=ad.category.parent.slug) }}">{{ ad.category.parent.name }}</a>
+                <i class="fas fa-chevron-right"></i>
+            {% endif %}
+            <a href="{{ url_for('category', slug=ad.category.slug) }}">{{ ad.category.name }}</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>{{ ad.title[:30] }}...</span>
+        </nav>
+        
+        <div class="ad-detail-content">
+            <!-- Main Content -->
+            <div class="ad-main">
+                <!-- Image Gallery -->
+                <div class="ad-gallery">
+                    {% if ad.images %}
+                        {% set images = ad.images.split(',') %}
+                        <div class="gallery-main">
+                            <img src="{{ url_for('static', filename='uploads/' + images[0]) }}" alt="{{ ad.title }}" id="main-image" onerror="this.src='https://via.placeholder.com/600x400?text=Нет+фото'">
+                            <button class="gallery-nav prev" onclick="changeImage(-1)"><i class="fas fa-chevron-left"></i></button>
+                            <button class="gallery-nav next" onclick="changeImage(1)"><i class="fas fa-chevron-right"></i></button>
+                        </div>
+                        {% if images|length > 1 %}
+                        <div class="gallery-thumbs">
+                            {% for img in images %}
+                            <img src="{{ url_for('static', filename='uploads/' + img) }}" alt="Thumbnail" class="thumb {% if loop.first %}active{% endif %}" onclick="setMainImage(this, '{{ url_for('static', filename='uploads/' + img) }}')" onerror="this.style.display='none'">
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="gallery-main no-image">
+                            <img src="https://via.placeholder.com/600x400?text=Нет+фото" alt="No image">
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Ad Info -->
+                <div class="ad-info-block">
+                    <div class="ad-header">
+                        <h1>{{ ad.title }}</h1>
+                        <div class="ad-actions">
+                            {% if current_user.is_authenticated %}
+                            <button class="action-btn favorite {% if is_favorite %}active{% endif %}" onclick="toggleFavorite({{ ad.id }})">
+                                <i class="{% if is_favorite %}fas{% else %}far{% endif %} fa-heart"></i>
+                            </button>
+                            {% endif %}
+                            <button class="action-btn share" onclick="shareAd()">
+                                <i class="fas fa-share-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="ad-price-block">
+                        {% if ad.price %}
+                            <span class="price">{{ "{:,.0f}".format(ad.price).replace(",", " ") }} ₽</span>
+                            {% if ad.price_negotiable %}
+                                <span class="negotiable-badge">Торг уместен</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="price">Цена не указана</span>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="ad-meta-info">
+                        <span><i class="fas fa-map-marker-alt"></i> {{ ad.location or 'Местоположение не указано' }}</span>
+                        <span><i class="fas fa-eye"></i> {{ ad.views }} просмотров</span>
+                        <span><i class="fas fa-clock"></i> {{ ad.created_at.strftime('%d %B %Y, %H:%M') }}</span>
+                    </div>
+                    
+                    <div class="ad-description">
+                        <h2>Описание</h2>
+                        <div class="description-text">
+                            {{ ad.description|safe }}
+                        </div>
+                    </div>
+                    
+                    <!-- Report -->
+                    {% if current_user.is_authenticated and current_user.id != ad.user_id %}
+                    <div class="report-section">
+                        <button class="report-btn" onclick="showReportModal()">
+                            <i class="fas fa-flag"></i> Пожаловаться на объявление
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Sidebar -->
+            <aside class="ad-sidebar">
+                <!-- Seller Card -->
+                <div class="seller-card">
+                    <div class="seller-header">
+                        <a href="{{ url_for('user_profile', user_id=ad.author.id) }}" class="seller-avatar">
+                            <img src="{{ url_for('static', filename='uploads/' + (ad.author.avatar or 'default_avatar.png')) }}" alt="{{ ad.author.username }}" onerror="this.src='https://ui-avatars.com/api/?name={{ ad.author.username }}&background=random'">
+                        </a>
+                        <div class="seller-info">
+                            <a href="{{ url_for('user_profile', user_id=ad.author.id) }}" class="seller-name">{{ ad.author.username }}</a>
+                            <span class="seller-status">
+                                {% if ad.author.is_verified %}
+                                    <i class="fas fa-check-circle verified"></i> Проверенный
+                                {% endif %}
+                                {% if ad.author.role == 'master' %}
+                                    <span class="master-badge">Мастер</span>
+                                {% endif %}
+                            </span>
+                            <span class="member-since">На AVITA с {{ ad.author.created_at.strftime('%B %Y') }}</span>
+                        </div>
+                    </div>
+                    
+                    {% if ad.author.phone %}
+                    <button class="btn btn-outline btn-block show-phone" onclick="showPhone(this)" data-phone="{{ ad.author.phone }}">
+                        <i class="fas fa-phone"></i> Показать телефон
+                    </button>
+                    {% endif %}
+                    
+                    {% if current_user.is_authenticated and current_user.id != ad.author.id %}
+                    <a href="{{ url_for('chat', user_id=ad.author.id, ad_id=ad.id) }}" class="btn btn-primary btn-block">
+                        <i class="fas fa-comment-dots"></i> Написать продавцу
+                    </a>
+                    {% elif not current_user.is_authenticated %}
+                    <a href="{{ url_for('login') }}" class="btn btn-primary btn-block">
+                        <i class="fas fa-sign-in-alt"></i> Войдите, чтобы написать
+                    </a>
+                    {% endif %}
+                </div>
+                
+                <!-- Location Map Placeholder -->
+                <div class="location-card">
+                    <h3><i class="fas fa-map-marker-alt"></i> Местоположение</h3>
+                    <div class="map-placeholder">
+                        <div class="map-bg">
+                            <i class="fas fa-map"></i>
+                            <span>{{ ad.location or 'Не указано' }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Safety Tips -->
+                <div class="safety-card">
+                    <h3><i class="fas fa-shield-alt"></i> Советы по безопасности</h3>
+                    <ul>
+                        <li>Встречайтесь в общественных местах</li>
+                        <li>Не отправляйте предоплату</li>
+                        <li>Проверяйте товар перед покупкой</li>
+                    </ul>
+                </div>
+                
+                {% if current_user.is_authenticated and (current_user.id == ad.user_id or current_user.role == 'admin') %}
+                <div class="owner-actions">
+                    <a href="{{ url_for('edit_ad', ad_id=ad.id) }}" class="btn btn-outline btn-block">
+                        <i class="fas fa-edit"></i> Редактировать
+                    </a>
+                    <form action="{{ url_for('delete_ad', ad_id=ad.id) }}" method="POST" onsubmit="return confirm('Удалить объявление?')">
+                        <button type="submit" class="btn btn-danger btn-block">
+                            <i class="fas fa-trash"></i> Удалить
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </aside>
+        </div>
+        
+        <!-- Similar Ads -->
+        {% if similar_ads %}
+        <section class="similar-ads">
+            <h2>Похожие объявления</h2>
+            <div class="ads-grid small">
+                {% for ad in similar_ads %}
+                <a href="{{ url_for('ad_detail', ad_id=ad.id) }}" class="ad-card">
+                    <div class="ad-image">
+                        {% if ad.images %}
+                            <img src="{{ url_for('static', filename='uploads/' + ad.images.split(',')[0]) }}" alt="{{ ad.title }}" onerror="this.src='https://via.placeholder.com/300x200?text=Нет+фото'">
+                        {% else %}
+                            <img src="https://via.placeholder.com/300x200?text=Нет+фото" alt="No image">
+                        {% endif %}
+                    </div>
+                    <div class="ad-info">
+                        <h3 class="ad-title">{{ ad.title }}</h3>
+                        <p class="ad-price">
+                            {% if ad.price %}
+                                {{ "{:,.0f}".format(ad.price).replace(",", " ") }} ₽
+                            {% else %}
+                                Цена не указана
+                            {% endif %}
+                        </p>
+                    </div>
+                </a>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Report Modal -->
+<div class="modal" id="reportModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Пожаловаться на объявление</h3>
+            <button class="close-modal" onclick="hideReportModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <form action="{{ url_for('create_report') }}" method="POST">
+            <input type="hidden" name="ad_id" value="{{ ad.id }}">
+            <div class="form-group">
+                <label>Причина жалобы</label>
+                <select name="reason" required>
+                    <option value="">Выберите причину</option>
+                    <option value="spam">Спам</option>
+                    <option value="scam">Мошенничество</option>
+                    <option value="inappropriate">Неприемлемый контент</option>
+                    <option value="wrong_category">Неправильная категория</option>
+                    <option value="duplicate">Дубликат</option>
+                    <option value="other">Другое</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Описание (необязательно)</label>
+                <textarea name="description" rows="3" placeholder="Опишите проблему подробнее..."></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Отправить жалобу</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentImageIndex = 0;
+const images = [{% for img in ad.images.split(',') if ad.images %}'{{ url_for('static', filename='uploads/' + img) }}',{% endfor %}];
+
+function changeImage(direction) {
+    if (images.length === 0) return;
+    currentImageIndex += direction;
+    if (currentImageIndex < 0) currentImageIndex = images.length - 1;
+    if (currentImageIndex >= images.length) currentImageIndex = 0;
+    document.getElementById('main-image').src = images[currentImageIndex];
+    updateThumbs();
+}
+
+function setMainImage(thumb, src) {
+    document.getElementById('main-image').src = src;
+    currentImageIndex = images.indexOf(src);
+    updateThumbs();
+}
+
+function updateThumbs() {
+    document.querySelectorAll('.thumb').forEach((t, i) => {
+        t.classList.toggle('active', i === currentImageIndex);
+    });
+}
+
+function toggleFavorite(adId) {
+    fetch(`/ad/${adId}/favorite`, { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+            const btn = document.querySelector('.favorite');
+            const icon = btn.querySelector('i');
+            if (data.status === 'added') {
+                btn.classList.add('active');
+                icon.classList.replace('far', 'fas');
+            } else {
+                btn.classList.remove('active');
+                icon.classList.replace('fas', 'far');
+            }
+        });
+}
+
+function showPhone(btn) {
+    btn.innerHTML = `<i class="fas fa-phone"></i> ${btn.dataset.phone}`;
+    btn.onclick = null;
+}
+
+function showReportModal() {
+    document.getElementById('reportModal').classList.add('active');
+}
+
+function hideReportModal() {
+    document.getElementById('reportModal').classList.remove('active');
+}
+
+function shareAd() {
+    if (navigator.share) {
+        navigator.share({
+            title: '{{ ad.title }}',
+            url: window.location.href
+        });
+    } else {
+        navigator.clipboard.writeText(window.location.href);
+        alert('Ссылка скопирована!');
+    }
+}
+</script>
+{% endblock %}

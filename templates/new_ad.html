@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+
+{% block title %}Разместить объявление - AVITA{% endblock %}
+
+{% block content %}
+<div class="new-ad-page">
+    <div class="container">
+        <div class="page-header">
+            <h1>Разместить объявление</h1>
+            <p>Заполните форму и ваше объявление появится на сайте</p>
+        </div>
+        
+        <form method="POST" enctype="multipart/form-data" class="ad-form">
+            <div class="form-section">
+                <h2><i class="fas fa-folder"></i> Категория</h2>
+                <div class="form-group">
+                    <label for="category_id">Выберите категорию *</label>
+                    <select name="category_id" id="category_id" required>
+                        <option value="">Выберите категорию</option>
+                        {% for cat in categories %}
+                            {% if cat.parent_id is none %}
+                                <optgroup label="{{ cat.name }}">
+                                    {% for child in categories if child.parent_id == cat.id %}
+                                        <option value="{{ child.id }}">{{ child.name }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h2><i class="fas fa-edit"></i> Информация</h2>
+                <div class="form-group">
+                    <label for="title">Название объявления *</label>
+                    <input type="text" id="title" name="title" placeholder="Например: iPhone 14 Pro Max 256GB" required maxlength="100">
+                    <small>Максимум 100 символов</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">Описание *</label>
+                    <textarea id="description" name="description" rows="6" placeholder="Подробно опишите товар или услугу. Укажите характеристики, состояние, особенности..." required></textarea>
+                    <small>Подробное описание поможет быстрее найти покупателя</small>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h2><i class="fas fa-camera"></i> Фотографии</h2>
+                <div class="form-group">
+                    <div class="image-upload-area" id="dropZone">
+                        <input type="file" id="images" name="images" multiple accept="image/*" class="file-input">
+                        <div class="upload-placeholder">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>Перетащите фото сюда или нажмите для выбора</p>
+                            <small>До 10 фотографий, максимум 5MB каждая</small>
+                        </div>
+                        <div class="image-preview" id="imagePreview"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h2><i class="fas fa-ruble-sign"></i> Цена</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="price">Цена, ₽</label>
+                        <input type="number" id="price" name="price" placeholder="0" min="0" step="1">
+                        <small>Оставьте пустым, если цена договорная</small>
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="price_negotiable">
+                            <span class="checkmark"></span>
+                            Торг уместен
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h2><i class="fas fa-map-marker-alt"></i> Местоположение</h2>
+                <div class="form-group">
+                    <label for="location">Город / Район</label>
+                    <input type="text" id="location" name="location" placeholder="Например: Москва, Центральный район" value="{{ current_user.location or '' }}">
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-check"></i> Опубликовать объявление
+                </button>
+                <a href="{{ url_for('index') }}" class="btn btn-outline btn-lg">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('images');
+const imagePreview = document.getElementById('imagePreview');
+
+dropZone.addEventListener('click', () => fileInput.click());
+
+dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+});
+
+dropZone.addEventListener('dragleave', () => {
+    dropZone.classList.remove('dragover');
+});
+
+dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    fileInput.files = e.dataTransfer.files;
+    updatePreview();
+});
+
+fileInput.addEventListener('change', updatePreview);
+
+function updatePreview() {
+    imagePreview.innerHTML = '';
+    const files = Array.from(fileInput.files).slice(0, 10);
+    
+    if (files.length > 0) {
+        dropZone.querySelector('.upload-placeholder').style.display = 'none';
+    } else {
+        dropZone.querySelector('.upload-placeholder').style.display = 'flex';
+    }
+    
+    files.forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const div = document.createElement('div');
+            div.className = 'preview-item';
+            div.innerHTML = `
+                <img src="${e.target.result}" alt="Preview">
+                <button type="button" class="remove-btn" onclick="removeImage(${index})">
+                    <i class="fas fa-times"></i>
+                </button>
+                ${index === 0 ? '<span class="main-badge">Главное</span>' : ''}
+            `;
+            imagePreview.appendChild(div);
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function removeImage(index) {
+    const dt = new DataTransfer();
+    const files = Array.from(fileInput.files);
+    files.splice(index, 1);
+    files.forEach(f => dt.items.add(f));
+    fileInput.files = dt.files;
+    updatePreview();
+}
+</script>
+{% endblock %}

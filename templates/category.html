@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ category.name }} - AVITA{% endblock %}
+
+{% block content %}
+<div class="category-page">
+    <div class="container">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb">
+            <a href="{{ url_for('index') }}">Главная</a>
+            {% if category.parent %}
+                <i class="fas fa-chevron-right"></i>
+                <a href="{{ url_for('category', slug=category.parent.slug) }}">{{ category.parent.name }}</a>
+            {% endif %}
+            <i class="fas fa-chevron-right"></i>
+            <span>{{ category.name }}</span>
+        </nav>
+        
+        <div class="category-header">
+            <h1><i class="fas {{ category.icon or 'fa-folder' }}"></i> {{ category.name }}</h1>
+            <span class="ads-count">{{ ads|length }} объявлений</span>
+        </div>
+        
+        <!-- Subcategories -->
+        {% if category.children %}
+        <div class="subcategories">
+            {% for child in category.children %}
+            <a href="{{ url_for('category', slug=child.slug) }}" class="subcategory-chip">
+                {{ child.name }}
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <div class="category-content">
+            <!-- Filters Sidebar -->
+            <aside class="filters-sidebar">
+                <div class="filter-card">
+                    <h3>Фильтры</h3>
+                    <form action="{{ url_for('search') }}" method="GET">
+                        <input type="hidden" name="category" value="{{ category.id }}">
+                        
+                        <div class="filter-group">
+                            <label>Цена, ₽</label>
+                            <div class="price-range">
+                                <input type="number" name="min_price" placeholder="От">
+                                <span>—</span>
+                                <input type="number" name="max_price" placeholder="До">
+                            </div>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label>Местоположение</label>
+                            <input type="text" name="location" placeholder="Город или регион">
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="with_photo">
+                                <span class="checkmark"></span>
+                                Только с фото
+                            </label>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-block">Применить</button>
+                        <button type="reset" class="btn btn-outline btn-block">Сбросить</button>
+                    </form>
+                </div>
+            </aside>
+            
+            <!-- Ads List -->
+            <div class="ads-section">
+                <div class="ads-header">
+                    <div class="sort-options">
+                        <span>Сортировка:</span>
+                        <select onchange="window.location.href=this.value">
+                            <option value="?sort=date">По дате</option>
+                            <option value="?sort=price_asc">Сначала дешевле</option>
+                            <option value="?sort=price_desc">Сначала дороже</option>
+                        </select>
+                    </div>
+                    <div class="view-toggle">
+                        <button class="view-btn active" data-view="grid"><i class="fas fa-th"></i></button>
+                        <button class="view-btn" data-view="list"><i class="fas fa-list"></i></button>
+                    </div>
+                </div>
+                
+                <div class="ads-grid" id="ads-container">
+                    {% for ad in ads %}
+                    <a href="{{ url_for('ad_detail', ad_id=ad.id) }}" class="ad-card">
+                        <div class="ad-image">
+                            {% if ad.images %}
+                                <img src="{{ url_for('static', filename='uploads/' + ad.images.split(',')[0]) }}" alt="{{ ad.title }}" onerror="this.src='https://via.placeholder.com/300x200?text=Нет+фото'">
+                            {% else %}
+                                <img src="https://via.placeholder.com/300x200?text=Нет+фото" alt="No image">
+                            {% endif %}
+                            {% if ad.is_premium %}
+                                <span class="premium-badge">Premium</span>
+                            {% endif %}
+                        </div>
+                        <div class="ad-info">
+                            <h3 class="ad-title">{{ ad.title }}</h3>
+                            <p class="ad-price">
+                                {% if ad.price %}
+                                    {{ "{:,.0f}".format(ad.price).replace(",", " ") }} ₽
+                                    {% if ad.price_negotiable %}<span class="negotiable">Торг</span>{% endif %}
+                                {% else %}
+                                    Цена не указана
+                                {% endif %}
+                            </p>
+                            <div class="ad-meta">
+                                <span><i class="fas fa-map-marker-alt"></i> {{ ad.location or 'Не указано' }}</span>
+                                <span><i class="fas fa-clock"></i> {{ ad.created_at.strftime('%d.%m.%Y') }}</span>
+                            </div>
+                        </div>
+                    </a>
+                    {% else %}
+                    <div class="empty-state full-width">
+                        <i class="fas fa-search"></i>
+                        <h3>Объявлений не найдено</h3>
+                        <p>В этой категории пока нет объявлений</p>
+                        <a href="{{ url_for('new_ad') }}" class="btn btn-primary">Разместить первое</a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

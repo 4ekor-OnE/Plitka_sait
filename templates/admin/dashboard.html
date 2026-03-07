@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}Админ панель - AVITA{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+    <div class="container">
+        <div class="admin-header">
+            <h1><i class="fas fa-shield-alt"></i> Панель администратора</h1>
+        </div>
+        
+        <div class="admin-nav">
+            <a href="{{ url_for('admin_panel') }}" class="admin-nav-item active">
+                <i class="fas fa-chart-line"></i> Обзор
+            </a>
+            <a href="{{ url_for('admin_users') }}" class="admin-nav-item">
+                <i class="fas fa-users"></i> Пользователи
+            </a>
+            <a href="{{ url_for('admin_ads') }}" class="admin-nav-item">
+                <i class="fas fa-list"></i> Объявления
+            </a>
+            <a href="{{ url_for('admin_reports') }}" class="admin-nav-item">
+                <i class="fas fa-flag"></i> Жалобы
+                {% if stats.reports > 0 %}
+                    <span class="badge">{{ stats.reports }}</span>
+                {% endif %}
+            </a>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon users"><i class="fas fa-users"></i></div>
+                <div class="stat-info">
+                    <span class="stat-value">{{ stats.users }}</span>
+                    <span class="stat-label">Пользователей</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon ads"><i class="fas fa-list"></i></div>
+                <div class="stat-info">
+                    <span class="stat-value">{{ stats.ads }}</span>
+                    <span class="stat-label">Объявлений</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon pending"><i class="fas fa-clock"></i></div>
+                <div class="stat-info">
+                    <span class="stat-value">{{ stats.pending_ads }}</span>
+                    <span class="stat-label">На модерации</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon vacancies"><i class="fas fa-briefcase"></i></div>
+                <div class="stat-info">
+                    <span class="stat-value">{{ stats.vacancies }}</span>
+                    <span class="stat-label">Вакансий</span>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon reports"><i class="fas fa-flag"></i></div>
+                <div class="stat-info">
+                    <span class="stat-value">{{ stats.reports }}</span>
+                    <span class="stat-label">Жалоб</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="admin-sections">
+            <div class="admin-section">
+                <h2>Быстрые действия</h2>
+                <div class="quick-actions">
+                    <a href="{{ url_for('admin_ads') }}?status=pending" class="quick-action">
+                        <i class="fas fa-clock"></i>
+                        <span>Модерация объявлений</span>
+                    </a>
+                    <a href="{{ url_for('admin_reports') }}" class="quick-action">
+                        <i class="fas fa-flag"></i>
+                        <span>Просмотр жалоб</span>
+                    </a>
+                    <a href="{{ url_for('admin_users') }}" class="quick-action">
+                        <i class="fas fa-user-cog"></i>
+                        <span>Управление пользователями</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

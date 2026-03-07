@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ vacancy.title }} - AVITA{% endblock %}
+
+{% block content %}
+<div class="vacancy-detail-page">
+    <div class="container">
+        <nav class="breadcrumb">
+            <a href="{{ url_for('index') }}">Главная</a>
+            <i class="fas fa-chevron-right"></i>
+            <a href="{{ url_for('vacancies') }}">Вакансии</a>
+            <i class="fas fa-chevron-right"></i>
+            <span>{{ vacancy.title[:30] }}...</span>
+        </nav>
+        
+        <div class="vacancy-detail-content">
+            <div class="vacancy-main">
+                <div class="vacancy-header-block">
+                    <h1>{{ vacancy.title }}</h1>
+                    <div class="vacancy-salary-block">
+                        {% if vacancy.salary_from or vacancy.salary_to %}
+                            {% if vacancy.salary_from %}от {{ "{:,.0f}".format(vacancy.salary_from).replace(",", " ") }}{% endif %}
+                            {% if vacancy.salary_to %}до {{ "{:,.0f}".format(vacancy.salary_to).replace(",", " ") }}{% endif %} ₽
+                        {% else %}
+                            Зарплата не указана
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="vacancy-company-block">
+                    <i class="fas fa-building"></i>
+                    <span>{{ vacancy.company_name or vacancy.author.username }}</span>
+                </div>
+                
+                <div class="vacancy-tags">
+                    {% if vacancy.experience %}
+                        <span class="tag"><i class="fas fa-clock"></i> {{ vacancy.experience }}</span>
+                    {% endif %}
+                    {% if vacancy.schedule %}
+                        <span class="tag"><i class="fas fa-calendar-alt"></i> {{ vacancy.schedule }}</span>
+                    {% endif %}
+                    {% if vacancy.location %}
+                        <span class="tag"><i class="fas fa-map-marker-alt"></i> {{ vacancy.location }}</span>
+                    {% endif %}
+                </div>
+                
+                <div class="vacancy-description">
+                    <h2>Описание вакансии</h2>
+                    <div class="description-text">
+                        {{ vacancy.description|safe }}
+                    </div>
+                </div>
+            </div>
+            
+            <aside class="vacancy-sidebar">
+                <div class="employer-card">
+                    <h3>Работодатель</h3>
+                    <a href="{{ url_for('user_profile', user_id=vacancy.author.id) }}" class="employer-info">
+                        <img src="{{ url_for('static', filename='uploads/' + (vacancy.author.avatar or 'default_avatar.png')) }}" alt="{{ vacancy.author.username }}" onerror="this.src='https://ui-avatars.com/api/?name={{ vacancy.author.username }}&background=random'">
+                        <div>
+                            <span class="employer-name">{{ vacancy.author.username }}</span>
+                            <span class="employer-role"><i class="fas fa-tools"></i> Мастер</span>
+                        </div>
+                    </a>
+                    
+                    {% if current_user.is_authenticated and current_user.id != vacancy.author.id %}
+                    <a href="{{ url_for('chat', user_id=vacancy.author.id) }}" class="btn btn-primary btn-block">
+                        <i class="fas fa-comment-dots"></i> Откликнуться
+                    </a>
+                    {% elif not current_user.is_authenticated %}
+                    <a href="{{ url_for('login') }}" class="btn btn-primary btn-block">
+                        <i class="fas fa-sign-in-alt"></i> Войдите, чтобы откликнуться
+                    </a>
+                    {% endif %}
+                </div>
+                
+                <div class="vacancy-meta-card">
+                    <p><i class="fas fa-calendar"></i> Опубликовано: {{ vacancy.created_at.strftime('%d %B %Y') }}</p>
+                </div>
+            </aside>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,155 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<section class="hero">
+    <div class="hero-content">
+        <h1>Покупай и продавай <span class="highlight">легко</span></h1>
+        <p>Миллионы товаров и услуг рядом с вами</p>
+        <form action="{{ url_for('search') }}" method="GET" class="hero-search">
+            <input type="text" name="q" placeholder="Что вы ищете?">
+            <select name="category">
+                <option value="">Все категории</option>
+                {% for cat in categories %}
+                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit">Найти</button>
+        </form>
+    </div>
+    <div class="hero-decoration">
+        <div class="floating-shape shape-1"></div>
+        <div class="floating-shape shape-2"></div>
+        <div class="floating-shape shape-3"></div>
+    </div>
+</section>
+
+<section class="categories-section">
+    <div class="container">
+        <div class="categories-grid-exact">
+            {% for cat in categories %}
+            <a href="{{ url_for('category', slug=cat.slug) }}" class="category-card-exact">
+                <span class="category-label-top">{{ cat.name }}</span>
+                <div class="category-icon-exact">
+                    <img src="{{ url_for('static', filename='images/categories/' + cat.slug + '.png') }}" 
+                         alt="{{ cat.name }}" 
+                         class="category-image"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="category-icon-fallback" style="display: none;">
+                        <i class="fas {{ cat.icon }}"></i>
+                    </div>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="featured-section">
+    <div class="container">
+        <div class="section-header">
+            <h2 class="section-title">Свежие объявления</h2>
+            <a href="{{ url_for('search') }}" class="view-all">Смотреть все <i class="fas fa-arrow-right"></i></a>
+        </div>
+        <div class="ads-grid">
+            {% for ad in featured_ads %}
+            <a href="{{ url_for('ad_detail', ad_id=ad.id) }}" class="ad-card">
+                <div class="ad-image">
+                    {% if ad.images %}
+                        <img src="{{ url_for('static', filename='uploads/' + ad.images.split(',')[0]) }}" alt="{{ ad.title }}" onerror="this.src='https://via.placeholder.com/300x200?text=Нет+фото'">
+                    {% else %}
+                        <img src="https://via.placeholder.com/300x200?text=Нет+фото" alt="No image">
+                    {% endif %}
+                    {% if ad.is_premium %}
+                        <span class="premium-badge">Premium</span>
+                    {% endif %}
+                </div>
+                <div class="ad-info">
+                    <h3 class="ad-title">{{ ad.title }}</h3>
+                    <p class="ad-price">
+                        {% if ad.price %}
+                            {{ "{:,.0f}".format(ad.price).replace(",", " ") }} ₽
+                            {% if ad.price_negotiable %}<span class="negotiable">Торг</span>{% endif %}
+                        {% else %}
+                            Цена не указана
+                        {% endif %}
+                    </p>
+                    <div class="ad-meta">
+                        <span><i class="fas fa-map-marker-alt"></i> {{ ad.location or 'Не указано' }}</span>
+                        <span><i class="fas fa-clock"></i> {{ ad.created_at.strftime('%d.%m.%Y') }}</span>
+                    </div>
+                </div>
+            </a>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-box-open"></i>
+                <p>Пока нет объявлений</p>
+                <a href="{{ url_for('new_ad') }}" class="btn btn-primary">Разместить первое</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="promo-section">
+    <div class="container">
+        <div class="promo-cards">
+            <div class="promo-card sell">
+                <div class="promo-icon">
+                    <i class="fas fa-tag"></i>
+                </div>
+                <h3>Продавайте быстро</h3>
+                <p>Разместите объявление за пару минут и найдите покупателя</p>
+                <a href="{{ url_for('new_ad') }}" class="btn btn-white">Продать</a>
+            </div>
+            <div class="promo-card work">
+                <div class="promo-icon">
+                    <i class="fas fa-briefcase"></i>
+                </div>
+                <h3>Найдите работу</h3>
+                <p>Тысячи вакансий и предложений о работе</p>
+                <a href="{{ url_for('vacancies') }}" class="btn btn-white">Вакансии</a>
+            </div>
+            <div class="promo-card services">
+                <div class="promo-icon">
+                    <i class="fas fa-tools"></i>
+                </div>
+                <h3>Услуги мастеров</h3>
+                <p>Профессионалы для любых задач рядом с вами</p>
+                <a href="{{ url_for('category', slug='services') }}" class="btn btn-white">Найти мастера</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="how-it-works">
+    <div class="container">
+        <h2 class="section-title">Как это работает</h2>
+        <div class="steps">
+            <div class="step">
+                <div class="step-number">1</div>
+                <div class="step-icon"><i class="fas fa-camera"></i></div>
+                <h3>Сфотографируйте</h3>
+                <p>Сделайте качественные фото товара</p>
+            </div>
+            <div class="step">
+                <div class="step-number">2</div>
+                <div class="step-icon"><i class="fas fa-edit"></i></div>
+                <h3>Опишите</h3>
+                <p>Добавьте подробное описание и цену</p>
+            </div>
+            <div class="step">
+                <div class="step-number">3</div>
+                <div class="step-icon"><i class="fas fa-upload"></i></div>
+                <h3>Опубликуйте</h3>
+                <p>Разместите объявление бесплатно</p>
+            </div>
+            <div class="step">
+                <div class="step-number">4</div>
+                <div class="step-icon"><i class="fas fa-handshake"></i></div>
+                <h3>Продайте</h3>
+                <p>Общайтесь с покупателями и заключайте сделку</p>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

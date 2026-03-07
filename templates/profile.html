@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %}Мой профиль - AVITA{% endblock %}
+
+{% block content %}
+<div class="profile-page">
+    <div class="container">
+        <div class="profile-header">
+            <div class="profile-avatar">
+                <img src="{{ url_for('static', filename='uploads/' + (current_user.avatar or 'default_avatar.png')) }}" alt="{{ current_user.username }}" onerror="this.src='https://ui-avatars.com/api/?name={{ current_user.username }}&background=random&size=150'">
+                <a href="{{ url_for('edit_profile') }}" class="edit-avatar"><i class="fas fa-camera"></i></a>
+            </div>
+            <div class="profile-info">
+                <h1>{{ current_user.username }}</h1>
+                <div class="profile-badges">
+                    {% if current_user.role == 'master' %}
+                        <span class="badge master"><i class="fas fa-tools"></i> Мастер</span>
+                    {% elif current_user.role == 'admin' %}
+                        <span class="badge admin"><i class="fas fa-shield-alt"></i> Администратор</span>
+                    {% else %}
+                        <span class="badge buyer"><i class="fas fa-user"></i> Покупатель</span>
+                    {% endif %}
+                    {% if current_user.is_verified %}
+                        <span class="badge verified"><i class="fas fa-check-circle"></i> Проверенный</span>
+                    {% endif %}
+                </div>
+                <p class="profile-meta">
+                    <span><i class="fas fa-envelope"></i> {{ current_user.email }}</span>
+                    {% if current_user.phone %}
+                        <span><i class="fas fa-phone"></i> {{ current_user.phone }}</span>
+                    {% endif %}
+                    {% if current_user.location %}
+                        <span><i class="fas fa-map-marker-alt"></i> {{ current_user.location }}</span>
+                    {% endif %}
+                </p>
+                <p class="member-since">На AVITA с {{ current_user.created_at.strftime('%d %B %Y') }}</p>
+            </div>
+            <div class="profile-actions">
+                <a href="{{ url_for('edit_profile') }}" class="btn btn-outline"><i class="fas fa-edit"></i> Редактировать</a>
+                <a href="{{ url_for('new_ad') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Новое объявление</a>
+            </div>
+        </div>
+        
+        <div class="profile-tabs">
+            <button class="tab-btn active" data-tab="my-ads">
+                <i class="fas fa-list"></i> Мои объявления <span class="count">{{ user_ads|length }}</span>
+            </button>
+            <button class="tab-btn" data-tab="favorites">
+                <i class="fas fa-heart"></i> Избранное <span class="count">{{ favorite_ads|length }}</span>
+            </button>
+            {% if current_user.role == 'master' %}
+            <button class="tab-btn" data-tab="vacancies">
+                <i class="fas fa-briefcase"></i> Мои вакансии
+            </button>
+            {% endif %}
+        </div>
+        
+        <div class="tab-content active" id="my-ads">
+            {% if user_ads %}
+            <div class="ads-list">
+                {% for ad in user_ads %}
+                <div class="ad-list-item">
+                    <div class="ad-list-image">
+                        {% if ad.images %}
+                            <img src="{{ url_for('static', filename='uploads/' + ad.images.split(',')[0]) }}" alt="{{ ad.title }}" onerror="this.src='https://via.placeholder.com/120x90?text=Нет+фото'">
+                        {% else %}
+                            <img src="https://via.placeholder.com/120x90?text=Нет+фото" alt="No image">
+                        {% endif %}
+                    </div>
+                    <div class="ad-list-info">
+                        <a href="{{ url_for('ad_detail', ad_id=ad.id) }}" class="ad-list-title">{{ ad.title }}</a>
+                        <p class="ad-list-price">
+                            {% if ad.price %}
+                                {{ "{:,.0f}".format(ad.price).replace(",", " ") }} ₽
+                            {% else %}
+                                Цена не указана
+                            {% endif %}
+                        </p>
+                        <div class="ad-list-meta">
+                            <span class="status status-{{ ad.status }}">
+                                {% if ad.status == 'active' %}Активно
+                                {% elif ad.status == 'pending' %}На модерации
+                                {% elif ad.status == 'rejected' %}Отклонено
+                                {% elif ad.status == 'sold' %}Продано
+                                {% endif %}
+                            </span>
+                            <span><i class="fas fa-eye"></i> {{ ad.views }}</span>
+                            <span><i class="fas fa-clock"></i> {{ ad.created_at.strftime('%d.%m.%Y') }}</span>
+                        </div>
+                    </div>
+                    <div class="ad-list-actions">
+                        <a href="{{ url_for('edit_ad', ad_id=ad.id) }}" class="btn btn-sm btn-outline"><i class="fas fa-edit"></i></a>
+                        <form action="{{ url_for('delete_ad', ad_id=ad.id) }}" method="POST" style="display:inline" onsubmit="return confirm('Удалить объявление?')">
+                            <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-trash"></i></button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-box-open"></i>
+                <h3>У вас пока нет объявлений</h3>
+                <p>Разместите первое объявление и начните продавать</p>
+                <a href="{{ url_for('new_ad') }}" class="btn btn-primary">Разместить объявление</a>
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="tab-content" id="favorites">
+            {% if favorite_ads %}
+            <div class="ads-grid">
+                {% for ad in favorite_ads %}
+                {% if ad %}
+                <a href="{{ url_for('ad_detail', ad_id=ad.id) }}" class="ad-card">
+                    <div class="ad-image">
+                        {% if ad.images %}
+                            <img src="{{ url_for('static', filename='uploads/' + ad.images.split(',')[0]) }}" alt="{{ ad.title }}" onerror="this.src='https://via.placeholder.com/300x200?text=Нет+фото'">
+                        {% else %}
+                            <img src="https://via.placeholder.com/300x200?text=Нет+фото" alt="No image">
+                        {% endif %}
+                    </div>
+                    <div class="ad-info">
+                        <h3 class="ad-title">{{ ad.title }}</h3>
+                        <p class="ad-price">
+                            {% if ad.price %}
+                                {{ "{:,.0f}".format(ad.price).replace(",", " ") }} ₽
+                            {% else %}
+                                Цена не указана
+                            {% endif %}
+                        </p>
+                    </div>
+                </a>
+                {% endif %}
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-heart"></i>
+                <h3>Избранное пусто</h3>
+                <p>Добавляйте понравившиеся объявления в избранное</p>
+                <a href="{{ url_for('search') }}" class="btn btn-primary">Найти объявления</a>
+            </div>
+            {% endif %}
+        </div>
+        
+        {% if current_user.role == 'master' %}
+        <div class="tab-content" id="vacancies">
+            <div class="empty-state">
+                <i class="fas fa-briefcase"></i>
+                <h3>Создавайте вакансии</h3>
+                <p>Как мастер, вы можете создавать вакансии и искать сотрудников</p>
+                <a href="{{ url_for('new_vacancy') }}" class="btn btn-primary">Создать вакансию</a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(btn.dataset.tab).classList.add('active');
+    });
+});
+</script>
+{% endblock %}

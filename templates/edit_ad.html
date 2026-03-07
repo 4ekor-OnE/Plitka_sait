@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block title %}Редактировать объявление - AVITA{% endblock %}
+
+{% block content %}
+<div class="edit-ad-page">
+    <div class="container">
+        <div class="page-header">
+            <h1>Редактировать объявление</h1>
+        </div>
+        
+        <form method="POST" enctype="multipart/form-data" class="ad-form">
+            <div class="form-section">
+                <h2><i class="fas fa-folder"></i> Категория</h2>
+                <div class="form-group">
+                    <label for="category_id">Категория *</label>
+                    <select name="category_id" id="category_id" required>
+                        {% for cat in categories %}
+                            {% if cat.parent_id is none %}
+                                <optgroup label="{{ cat.name }}">
+                                    {% for child in categories if child.parent_id == cat.id %}
+                                        <option value="{{ child.id }}" {% if child.id == ad.category_id %}selected{% endif %}>{{ child.name }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h2><i class="fas fa-edit"></i> Информация</h2>
+                <div class="form-group">
+                    <label for="title">Название *</label>
+                    <input type="text" id="title" name="title" value="{{ ad.title }}" required maxlength="100">
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">Описание *</label>
+                    <textarea id="description" name="description" rows="6" required>{{ ad.description }}</textarea>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h2><i class="fas fa-camera"></i> Фотографии</h2>
+                <div class="current-images">
+                    {% if ad.images %}
+                        {% for img in ad.images.split(',') %}
+                        <div class="current-image">
+                            <img src="{{ url_for('static', filename='uploads/' + img) }}" alt="Image" onerror="this.parentElement.style.display='none'">
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+                <div class="form-group">
+                    <label>Загрузить новые фото (заменит текущие)</label>
+                    <input type="file" name="images" multiple accept="image/*">
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h2><i class="fas fa-ruble-sign"></i> Цена</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="price">Цена, ₽</label>
+                        <input type="number" id="price" name="price" value="{{ ad.price or '' }}" min="0">
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="price_negotiable" {% if ad.price_negotiable %}checked{% endif %}>
+                            <span class="checkmark"></span>
+                            Торг уместен
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h2><i class="fas fa-map-marker-alt"></i> Местоположение</h2>
+                <div class="form-group">
+                    <label for="location">Город / Район</label>
+                    <input type="text" id="location" name="location" value="{{ ad.location or '' }}">
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-save"></i> Сохранить изменения
+                </button>
+                <a href="{{ url_for('ad_detail', ad_id=ad.id) }}" class="btn btn-outline btn-lg">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

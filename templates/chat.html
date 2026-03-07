@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% block title %}Чат с {{ other_user.username }} - AVITA{% endblock %}
+
+{% block content %}
+<div class="chat-page">
+    <div class="container">
+        <div class="chat-container">
+            <!-- Chat Header -->
+            <div class="chat-header-bar">
+                <a href="{{ url_for('messages') }}" class="back-btn"><i class="fas fa-arrow-left"></i></a>
+                <a href="{{ url_for('user_profile', user_id=other_user.id) }}" class="chat-user-info">
+                    <img src="{{ url_for('static', filename='uploads/' + (other_user.avatar or 'default_avatar.png')) }}" alt="{{ other_user.username }}" onerror="this.src='https://ui-avatars.com/api/?name={{ other_user.username }}&background=random'">
+                    <div>
+                        <span class="user-name">{{ other_user.username }}</span>
+                        {% if other_user.role == 'master' %}
+                            <span class="user-role"><i class="fas fa-tools"></i> Мастер</span>
+                        {% endif %}
+                    </div>
+                </a>
+                {% if chat.ad %}
+                <a href="{{ url_for('ad_detail', ad_id=chat.ad.id) }}" class="chat-ad-link">
+                    <i class="fas fa-tag"></i>
+                    <span>{{ chat.ad.title[:30] }}...</span>
+                    {% if chat.ad.price %}
+                        <strong>{{ "{:,.0f}".format(chat.ad.price).replace(",", " ") }} ₽</strong>
+                    {% endif %}
+                </a>
+                {% endif %}
+            </div>
+            
+            <!-- Messages Area -->
+            <div class="messages-area" id="messagesArea">
+                {% for message in chat.messages %}
+                <div class="message {% if message.sender_id == current_user.id %}sent{% else %}received{% endif %}">
+                    <div class="message-content">
+                        {{ message.content }}
+                    </div>
+                    <span class="message-time">{{ message.created_at.strftime('%H:%M') }}</span>
+                </div>
+                {% else %}
+                <div class="empty-chat">
+                    <i class="fas fa-comments"></i>
+                    <p>Начните диалог!</p>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Message Input -->
+            <div class="message-input-area">
+                <form id="messageForm" class="message-form">
+                    <input type="hidden" id="chatId" value="{{ chat.id }}">
+                    <button type="button" class="attach-btn"><i class="fas fa-paperclip"></i></button>
+                    <input type="text" id="messageInput" placeholder="Написать сообщение..." autocomplete="off">
+                    <button type="submit" class="send-btn"><i class="fas fa-paper-plane"></i></button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.0/socket.io.min.js"></script>
+<script>
+const socket = io();
+const chatId = document.getElementById('chatId').value;
+const messagesArea = document.getElementById('messagesArea');
+const messageForm = document.getElementById('messageForm');
+const messageInput = document.getElementById('messageInput');
+
+// Join chat room
+socket.emit('join', { room: 'chat_' + chatId });
+
+// Scroll to bottom
+messagesArea.scrollTop = messagesArea.scrollHeight;
+
+// Send message
+messageForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const content = messageInput.value.trim();
+    if (!content) return;
+    
+    try {
+        const response = await fetch('/api/send_message', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: chatId, content: content })
+        });
+        
+        const data = await response.json();
+        
+        // Add message to UI
+        addMessage(content, true, data.created_at);
+        
+        // Emit to socket for real-time
+        socket.emit('message', {
+            room: 'chat_' + chatId,
+            content: content,
+            sender_id: {{ current_user.id }},
+            time: data.created_at
+        });
+        
+        messageInput.value = '';
+    } catch (error) {
+        console.error('Error sending message:', error);
+    }
+});
+
+// Receive message
+socket.on('message', (data) => {
+    if (data.sender_id !== {{ current_user.id }}) {
+        addMessage(data.content, false, data.time);
+    }
+});
+
+function addMessage(content, isSent, time) {
+    const emptyChat = messagesArea.querySelector('.empty-chat');
+    if (emptyChat) emptyChat.remove();
+    
+    const div = document.createElement('div');
+    div.className = 'message ' + (isSent ? 'sent' : 'received');
+    div.innerHTML = `
+        <div class="message-content">${escapeHtml(content)}</div>
+        <span class="message-time">${time || new Date().toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})}</span>
+    `;
+    messagesArea.appendChild(div);
+    messagesArea.scrollTop = messagesArea.scrollHeight;
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}Поиск: {{ query }} - AVITA{% endblock %}
+
+{% block content %}
+<div class="search-page">
+    <div class="container">
+        <div class="search-header">
+            <h1>
+                {% if query %}
+                    Результаты поиска: «{{ query }}»
+                {% else %}
+                    Все объявления
+                {% endif %}
+            </h1>
+            <span class="results-count">Найдено {{ ads|length }} объявлений</span>
+        </div>
+        
+        <div class="search-content">
+            <!-- Filters -->
+            <aside class="filters-sidebar">
+                <div class="filter-card">
+                    <h3>Фильтры</h3>
+                    <form action="{{ url_for('search') }}" method="GET">
+                        <input type="hidden" name="q" value="{{ query }}">
+                        
+                        <div class="filter-group">
+                            <label>Категория</label>
+                            <select name="category">
+                                <option value="">Все категории</option>
+                                {% for cat in categories %}
+                                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label>Цена, ₽</label>
+                            <div class="price-range">
+                                <input type="number" name="min_price" placeholder="От" value="{{ request.args.get('min_price', '') }}">
+                                <span>—</span>
+                                <input type="number" name="max_price" placeholder="До" value="{{ request.args.get('max_price', '') }}">
+                            </div>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label>Местоположение</label>
+                            <input type="text" name="location" placeholder="Город" value="{{ request.args.get('location', '') }}">
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-block">Найти</button>
+                    </form>
+                </div>
+            </aside>
+            
+            <!-- Results -->
+            <div class="search-results">
+                <div class="results-header">
+                    <div class="sort-options">
+                        <span>Сортировка:</span>
+                        <select>
+                            <option>По дате</option>
+                            <option>Сначала дешевле</option>
+                            <option>Сначала дороже</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="ads-grid">
+                    {% for ad in ads %}
+                    <a href="{{ url_for('ad_detail', ad_id=ad.id) }}" class="ad-card">
+                        <div class="ad-image">
+                            {% if ad.images %}
+                                <img src="{{ url_for('static', filename='uploads/' + ad.images.split(',')[0]) }}" alt="{{ ad.title }}" onerror="this.src='https://via.placeholder.com/300x200?text=Нет+фото'">
+                            {% else %}
+                                <img src="https://via.placeholder.com/300x200?text=Нет+фото" alt="No image">
+                            {% endif %}
+                        </div>
+                        <div class="ad-info">
+                            <h3 class="ad-title">{{ ad.title }}</h3>
+                            <p class="ad-price">
+                                {% if ad.price %}
+                                    {{ "{:,.0f}".format(ad.price).replace(",", " ") }} ₽
+                                {% else %}
+                                    Цена не указана
+                                {% endif %}
+                            </p>
+                            <div class="ad-meta">
+                                <span><i class="fas fa-map-marker-alt"></i> {{ ad.location or 'Не указано' }}</span>
+                                <span><i class="fas fa-clock"></i> {{ ad.created_at.strftime('%d.%m.%Y') }}</span>
+                            </div>
+                        </div>
+                    </a>
+                    {% else %}
+                    <div class="empty-state full-width">
+                        <i class="fas fa-search"></i>
+                        <h3>Ничего не найдено</h3>
+                        <p>Попробуйте изменить параметры поиска</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

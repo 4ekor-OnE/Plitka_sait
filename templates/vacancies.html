@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+
+{% block title %}Вакансии - AVITA{% endblock %}
+
+{% block content %}
+<div class="vacancies-page">
+    <div class="container">
+        <div class="page-header">
+            <h1><i class="fas fa-briefcase"></i> Вакансии</h1>
+            {% if current_user.is_authenticated and current_user.role == 'master' %}
+                <a href="{{ url_for('new_vacancy') }}" class="btn btn-primary"><i class="fas fa-plus"></i> Создать вакансию</a>
+            {% endif %}
+        </div>
+        
+        <div class="vacancies-content">
+            <aside class="filters-sidebar">
+                <div class="filter-card">
+                    <h3>Фильтры</h3>
+                    <form>
+                        <div class="filter-group">
+                            <label>Зарплата, ₽</label>
+                            <div class="price-range">
+                                <input type="number" name="salary_from" placeholder="От">
+                                <span>—</span>
+                                <input type="number" name="salary_to" placeholder="До">
+                            </div>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label>Опыт работы</label>
+                            <select name="experience">
+                                <option value="">Любой</option>
+                                <option value="no">Без опыта</option>
+                                <option value="1-3">1-3 года</option>
+                                <option value="3-6">3-6 лет</option>
+                                <option value="6+">Более 6 лет</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <label>График работы</label>
+                            <select name="schedule">
+                                <option value="">Любой</option>
+                                <option value="full">Полный день</option>
+                                <option value="part">Частичная занятость</option>
+                                <option value="remote">Удалённая работа</option>
+                                <option value="shift">Сменный график</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-block">Применить</button>
+                    </form>
+                </div>
+            </aside>
+            
+            <div class="vacancies-list">
+                {% for vacancy in vacancies %}
+                <a href="{{ url_for('vacancy_detail', vacancy_id=vacancy.id) }}" class="vacancy-card">
+                    <div class="vacancy-header">
+                        <h2>{{ vacancy.title }}</h2>
+                        <div class="vacancy-salary">
+                            {% if vacancy.salary_from or vacancy.salary_to %}
+                                {% if vacancy.salary_from %}от {{ "{:,.0f}".format(vacancy.salary_from).replace(",", " ") }}{% endif %}
+                                {% if vacancy.salary_to %}до {{ "{:,.0f}".format(vacancy.salary_to).replace(",", " ") }}{% endif %} ₽
+                            {% else %}
+                                Зарплата не указана
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="vacancy-company">
+                        <i class="fas fa-building"></i> {{ vacancy.company_name or vacancy.author.username }}
+                    </div>
+                    <div class="vacancy-meta">
+                        {% if vacancy.experience %}
+                            <span><i class="fas fa-clock"></i> {{ vacancy.experience }}</span>
+                        {% endif %}
+                        {% if vacancy.schedule %}
+                            <span><i class="fas fa-calendar"></i> {{ vacancy.schedule }}</span>
+                        {% endif %}
+                        {% if vacancy.location %}
+                            <span><i class="fas fa-map-marker-alt"></i> {{ vacancy.location }}</span>
+                        {% endif %}
+                    </div>
+                    <p class="vacancy-preview">{{ vacancy.description[:150] }}...</p>
+                    <div class="vacancy-footer">
+                        <span class="vacancy-date">{{ vacancy.created_at.strftime('%d.%m.%Y') }}</span>
+                    </div>
+                </a>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-briefcase"></i>
+                    <h3>Вакансий пока нет</h3>
+                    <p>Станьте мастером и создайте первую вакансию</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}Создать вакансию - AVITA{% endblock %}
+
+{% block content %}
+<div class="new-vacancy-page">
+    <div class="container">
+        <div class="page-header">
+            <h1>Создать вакансию</h1>
+            <p>Найдите лучших специалистов для вашей команды</p>
+        </div>
+        
+        <form method="POST" class="vacancy-form">
+            <div class="form-section">
+                <h2><i class="fas fa-briefcase"></i> Основная информация</h2>
+                
+                <div class="form-group">
+                    <label for="title">Название вакансии *</label>
+                    <input type="text" id="title" name="title" placeholder="Например: Электрик на производство" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="company_name">Название компании</label>
+                    <input type="text" id="company_name" name="company_name" placeholder="Название вашей компании">
+                </div>
+                
+                <div class="form-group">
+                    <label for="description">Описание вакансии *</label>
+                    <textarea id="description" name="description" rows="8" placeholder="Опишите обязанности, требования, условия работы..." required></textarea>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h2><i class="fas fa-ruble-sign"></i> Зарплата</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="salary_from">От, ₽</label>
+                        <input type="number" id="salary_from" name="salary_from" placeholder="50 000">
+                    </div>
+                    <div class="form-group">
+                        <label for="salary_to">До, ₽</label>
+                        <input type="number" id="salary_to" name="salary_to" placeholder="100 000">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h2><i class="fas fa-user-clock"></i> Требования</h2>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="experience">Опыт работы</label>
+                        <select id="experience" name="experience">
+                            <option value="">Не важен</option>
+                            <option value="Без опыта">Без опыта</option>
+                            <option value="1-3 года">1-3 года</option>
+                            <option value="3-6 лет">3-6 лет</option>
+                            <option value="Более 6 лет">Более 6 лет</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="schedule">График работы</label>
+                        <select id="schedule" name="schedule">
+                            <option value="">Не указан</option>
+                            <option value="Полный день">Полный день</option>
+                            <option value="Частичная занятость">Частичная занятость</option>
+                            <option value="Удалённая работа">Удалённая работа</option>
+                            <option value="Сменный график">Сменный график</option>
+                            <option value="Вахтовый метод">Вахтовый метод</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-section">
+                <h2><i class="fas fa-map-marker-alt"></i> Местоположение</h2>
+                <div class="form-group">
+                    <label for="location">Город / Адрес</label>
+                    <input type="text" id="location" name="location" placeholder="Например: Москва, ул. Ленина 10">
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-check"></i> Опубликовать вакансию
+                </button>
+                <a href="{{ url_for('vacancies') }}" class="btn btn-outline btn-lg">Отмена</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

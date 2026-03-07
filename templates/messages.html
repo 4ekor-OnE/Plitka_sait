@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block title %}Сообщения - AVITA{% endblock %}
+
+{% block content %}
+<div class="messages-page">
+    <div class="container">
+        <div class="page-header">
+            <h1><i class="fas fa-comment-dots"></i> Сообщения</h1>
+        </div>
+        
+        <div class="chats-list">
+            {% for chat in chats %}
+            {% set other_user = chat.user2 if chat.user1_id == current_user.id else chat.user1 %}
+            <a href="{{ url_for('chat', user_id=other_user.id) }}" class="chat-item">
+                <div class="chat-avatar">
+                    <img src="{{ url_for('static', filename='uploads/' + (other_user.avatar or 'default_avatar.png')) }}" alt="{{ other_user.username }}" onerror="this.src='https://ui-avatars.com/api/?name={{ other_user.username }}&background=random'">
+                    {% if other_user.role == 'master' %}
+                        <span class="master-dot"></span>
+                    {% endif %}
+                </div>
+                <div class="chat-info">
+                    <div class="chat-header">
+                        <span class="chat-name">{{ other_user.username }}</span>
+                        {% if chat.messages %}
+                            <span class="chat-time">{{ chat.messages[-1].created_at.strftime('%d.%m %H:%M') }}</span>
+                        {% endif %}
+                    </div>
+                    {% if chat.ad %}
+                        <div class="chat-ad">
+                            <i class="fas fa-tag"></i> {{ chat.ad.title[:40] }}...
+                        </div>
+                    {% endif %}
+                    {% if chat.messages %}
+                        <p class="chat-preview">
+                            {% if chat.messages[-1].sender_id == current_user.id %}Вы: {% endif %}
+                            {{ chat.messages[-1].content[:50] }}{% if chat.messages[-1].content|length > 50 %}...{% endif %}
+                        </p>
+                    {% else %}
+                        <p class="chat-preview empty">Нет сообщений</p>
+                    {% endif %}
+                </div>
+                {% set unread = chat.messages|selectattr('sender_id', 'ne', current_user.id)|selectattr('is_read', 'false')|list|length %}
+                {% if unread > 0 %}
+                    <span class="unread-count">{{ unread }}</span>
+                {% endif %}
+            </a>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-comments"></i>
+                <h3>У вас пока нет сообщений</h3>
+                <p>Начните общение с продавцами или покупателями</p>
+                <a href="{{ url_for('search') }}" class="btn btn-primary">Найти объявления</a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
