@@ -61,16 +61,46 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.0/socket.io.min.js"></script>
 <script>
-const socket = io();
 const chatId = document.getElementById('chatId').value;
 const messagesArea = document.getElementById('messagesArea');
 const messageForm = document.getElementById('messageForm');
 const messageInput = document.getElementById('messageInput');
+let lastMessageId = {{ chat.messages[-1].id if chat.messages|length > 0 else 0 }};
+let socket = null;
+let useSocketIO = false;
 
-// Join chat room
-socket.emit('join', { room: 'chat_' + chatId });
+// Попытка подключиться к SocketIO (если доступен)
+try {
+    const socketIOScript = document.createElement('script');
+    socketIOScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.0/socket.io.min.js';
+    socketIOScript.onload = function() {
+        try {
+            socket = io();
+            socket.emit('join', { room: 'chat_' + chatId });
+            useSocketIO = true;
+            
+            // Receive message via SocketIO
+            socket.on('message', (data) => {
+                if (data.sender_id !== {{ current_user.id }}) {
+                    addMessage(data.content, false, data.time);
+                }
+            });
+        } catch (e) {
+            console.log('SocketIO недоступен, используем polling');
+            useSocketIO = false;
+            startPolling();
+        }
+    };
+    socketIOScript.onerror = function() {
+        useSocketIO = false;
+        startPolling();
+    };
+    document.head.appendChild(socketIOScript);
+} catch (e) {
+    useSocketIO = false;
+    startPolling();
+}
 
 // Scroll to bottom
 messagesArea.scrollTop = messagesArea.scrollHeight;
@@ -92,14 +122,17 @@ messageForm.addEventListener('submit', async (e) => {
         
         // Add message to UI
         addMessage(content, true, data.created_at);
+        lastMessageId = data.id;
         
-        // Emit to socket for real-time
-        socket.emit('message', {
-            room: 'chat_' + chatId,
-            content: content,
-            sender_id: {{ current_user.id }},
-            time: data.created_at
-        });
+        // Emit to socket if available
+        if (socket && useSocketIO) {
+            socket.emit('message', {
+                room: 'chat_' + chatId,
+                content: content,
+                sender_id: {{ current_user.id }},
+                time: data.created_at
+            });
+        }
         
         messageInput.value = '';
     } catch (error) {
@@ -107,12 +140,32 @@ messageForm.addEventListener('submit', async (e) => {
     }
 });
 
-// Receive message
-socket.on('message', (data) => {
-    if (data.sender_id !== {{ current_user.id }}) {
-        addMessage(data.content, false, data.time);
+// Polling для получения новых сообщений (если SocketIO недоступен)
+function startPolling() {
+    setInterval(async () => {
+        try {
+            const response = await fetch(`/api/chat/${chatId}/messages?after=${lastMessageId}`);
+            const data = await response.json();
+            if (data.messages && data.messages.length > 0) {
+                data.messages.forEach(msg => {
+                    if (msg.sender_id !== {{ current_user.id }}) {
+                        addMessage(msg.content, false, msg.created_at);
+                    }
+                    lastMessageId = Math.max(lastMessageId, msg.id);
+                });
+            }
+        } catch (error) {
+            // Игнорируем ошибки polling
+        }
+    }, 2000); // Проверяем каждые 2 секунды
+}
+
+// Запускаем polling если SocketIO не загрузился через 1 секунду
+setTimeout(() => {
+    if (!useSocketIO) {
+        startPolling();
     }
-});
+}, 1000);
 
 function addMessage(content, isSent, time) {
     const emptyChat = messagesArea.querySelector('.empty-chat');

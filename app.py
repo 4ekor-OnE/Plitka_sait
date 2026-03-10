@@ -18,7 +18,16 @@ app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
-socketio = SocketIO(app, cors_allowed_origins="*")
+
+# SocketIO инициализируется только если не запущено через WSGI
+# Для хостинга можно отключить, установив переменную окружения DISABLE_SOCKETIO=1
+if os.environ.get('DISABLE_SOCKETIO') != '1':
+    try:
+        socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+    except:
+        socketio = None
+else:
+    socketio = None
 
 # Ensure upload folder exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
@@ -598,21 +607,48 @@ def send_message():
         'created_at': message.created_at.strftime('%H:%M')
     })
 
-# Socket.IO events
-@socketio.on('join')
-def on_join(data):
-    room = data['room']
-    join_room(room)
+@app.route('/api/chat/<int:chat_id>/messages')
+@login_required
+def get_chat_messages(chat_id):
+    """Получение новых сообщений для polling (если SocketIO недоступен)"""
+    after_id = request.args.get('after', 0, type=int)
+    
+    chat = Chat.query.get_or_404(chat_id)
+    
+    if current_user.id not in [chat.user1_id, chat.user2_id]:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # Получаем новые сообщения после указанного ID
+    messages = Message.query.filter(
+        Message.chat_id == chat_id,
+        Message.id > after_id
+    ).order_by(Message.created_at.asc()).all()
+    
+    return jsonify({
+        'messages': [{
+            'id': msg.id,
+            'content': msg.content,
+            'sender_id': msg.sender_id,
+            'created_at': msg.created_at.strftime('%H:%M')
+        } for msg in messages]
+    })
 
-@socketio.on('leave')
-def on_leave(data):
-    room = data['room']
-    leave_room(room)
+# Socket.IO events (только если SocketIO активен)
+if socketio:
+    @socketio.on('join')
+    def on_join(data):
+        room = data['room']
+        join_room(room)
 
-@socketio.on('message')
-def handle_message(data):
-    room = data['room']
-    emit('message', data, room=room)
+    @socketio.on('leave')
+    def on_leave(data):
+        room = data['room']
+        leave_room(room)
+
+    @socketio.on('message')
+    def handle_message(data):
+        room = data['room']
+        emit('message', data, room=room)
 
 # Admin routes
 @app.route('/admin')
@@ -753,8 +789,23 @@ def unread_messages():
     return jsonify({'count': count})
 
 if __name__ == '__main__':
+    # Локальный запуск для разработки
     with app.app_context():
         db.create_all()
         init_categories()
         create_admin()
-    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+    if socketio:
+        socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+    else:
+        app.run(debug=True, host='0.0.0.0', port=5000)
+else:
+    # Запуск через WSGI (для хостинга)
+    # Инициализация базы данных при первом импорте
+    with app.app_context():
+        try:
+            db.create_all()
+            init_categories()
+            create_admin()
+        except Exception as e:
+            # Если БД уже создана или есть другие ошибки, продолжаем
+            pass
