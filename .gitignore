@@ -38,3 +38,8 @@ Thumbs.db
 
 # Uploads (optional - можно оставить если нужны примеры)
 # static/uploads/*
+
+# Hosting
+tmp/*
+!tmp/restart.txt
+public

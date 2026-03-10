@@ -48,6 +48,18 @@ python app.py
 http://localhost:5000
 ```
 
+## 🌐 Развертывание на хостинге Beget
+
+Для развертывания на хостинге Beget следуйте подробной инструкции в файле [DEPLOY.md](DEPLOY.md).
+
+Краткая инструкция:
+1. Загрузите проект на хостинг
+2. Создайте виртуальное окружение: `python3 -m venv venv`
+3. Установите зависимости: `pip install -r requirements.txt --ignore-installed`
+4. Создайте симлинк: `ln -s public_html public`
+5. Настройте `.htaccess` с правильным путем к Python
+6. Перезапустите: `touch tmp/restart.txt`
+
 ## 👤 Администратор
 
 По умолчанию создается администратор:
