@@ -789,15 +789,43 @@ def unread_messages():
     return jsonify({'count': count})
 
 if __name__ == '__main__':
-    # Локальный запуск для разработки
-    with app.app_context():
-        db.create_all()
-        init_categories()
-        create_admin()
-    if socketio:
-        socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+    # Проверяем, запущено ли на хостинге (через Passenger)
+    # На хостинге Beget нельзя запускать сервер напрямую
+    is_hosting = os.environ.get('PASSENGER_APP_ENV') or os.path.exists('/.beget')
+    
+    if is_hosting:
+        print("=" * 60)
+        print("⚠️  ВНИМАНИЕ: На хостинге Beget нельзя запускать сервер напрямую!")
+        print("=" * 60)
+        print("\nИспользуйте Passenger WSGI для запуска приложения.")
+        print("Приложение уже настроено и работает через passenger_wsgi.py")
+        print("\nДля проверки работы откройте сайт в браузере.")
+        print("Для перезапуска используйте: touch tmp/restart.txt")
+        print("\nИнициализация базы данных...")
+        
+        # Инициализируем БД, но не запускаем сервер
+        with app.app_context():
+            try:
+                db.create_all()
+                init_categories()
+                create_admin()
+                print("✅ База данных инициализирована успешно!")
+            except Exception as e:
+                print(f"ℹ️  База данных уже инициализирована или ошибка: {e}")
     else:
-        app.run(debug=True, host='0.0.0.0', port=5000)
+        # Локальный запуск для разработки
+        print("🚀 Запуск в режиме разработки...")
+        with app.app_context():
+            db.create_all()
+            init_categories()
+            create_admin()
+        
+        if socketio:
+            print("📡 SocketIO включен")
+            socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+        else:
+            print("🌐 Запуск Flask сервера...")
+            app.run(debug=True, host='0.0.0.0', port=5000)
 else:
     # Запуск через WSGI (для хостинга)
     # Инициализация базы данных при первом импорте
