@@ -52,13 +52,19 @@ http://localhost:5000
 
 Для развертывания на хостинге Beget следуйте подробной инструкции в файле [DEPLOY.md](DEPLOY.md).
 
+### Настройка домена и SSL
+
+Для настройки домена **avito.site** и SSL сертификата следуйте инструкции в файле [SETUP_DOMAIN.md](SETUP_DOMAIN.md).
+
 Краткая инструкция:
-1. Загрузите проект на хостинг
-2. Создайте виртуальное окружение: `python3 -m venv venv`
-3. Установите зависимости: `pip install -r requirements.txt --ignore-installed`
-4. Создайте симлинк: `ln -s public_html public`
-5. Настройте `.htaccess` с правильным путем к Python
-6. Перезапустите: `touch tmp/restart.txt`
+1. Загрузите проект на хостинг в каталог `~/avito.site/`
+2. Добавьте домен в панели управления Beget
+3. Установите SSL сертификат (Let's Encrypt) через панель управления
+4. Создайте виртуальное окружение: `python3 -m venv venv`
+5. Установите зависимости: `pip3 install -r requirements.txt --user --ignore-installed`
+6. Создайте симлинк: `ln -s public_html public`
+7. Настройте `.htaccess` с правильным путем к Python
+8. Перезапустите: `touch tmp/restart.txt`
 
 ## 👤 Администратор
 
