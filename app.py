@@ -789,34 +789,12 @@ def unread_messages():
     return jsonify({'count': count})
 
 if __name__ == '__main__':
-    # Проверяем, запущено ли на хостинге Beget
-    # На хостинге Beget нельзя запускать сервер напрямую
-    import socket
-    import platform
+    # Проверяем, запущено ли через Passenger (хостинг)
+    # Если запускаем напрямую python app.py - это локальный запуск
+    is_passenger = os.environ.get('PASSENGER_APP_ENV') is not None
     
-    # Различные способы определения хостинга Beget
-    is_hosting = (
-        os.environ.get('PASSENGER_APP_ENV') or  # Passenger переменная
-        os.path.exists('/.beget') or  # Файл маркер Beget
-        os.path.exists(os.path.expanduser('~/.beget')) or  # В домашней директории
-        'beget' in platform.node().lower() or  # В hostname
-        'beget' in socket.getfqdn().lower() or  # В FQDN
-        os.path.exists('/home') and any('beget' in d for d in os.listdir('/home') if os.path.isdir(os.path.join('/home', d)))  # В структуре каталогов
-    )
-    
-    # Дополнительная проверка: пробуем привязаться к порту
-    # Если не получается - это хостинг, где нельзя запускать сервер
-    can_bind_port = True
-    try:
-        test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        test_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        test_socket.bind(('127.0.0.1', 5000))
-        test_socket.close()
-    except (OSError, PermissionError) as e:
-        can_bind_port = False
-        is_hosting = True  # Если не можем привязаться к порту - это хостинг
-    
-    if is_hosting or not can_bind_port:
+    # Если запущено через Passenger - не запускаем сервер напрямую
+    if is_passenger:
         print("=" * 60)
         print("⚠️  ВНИМАНИЕ: На хостинге Beget нельзя запускать сервер напрямую!")
         print("=" * 60)
@@ -846,10 +824,10 @@ if __name__ == '__main__':
         
         if socketio:
             print("📡 SocketIO включен")
-            socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+            socketio.run(app, debug=True, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)
         else:
             print("🌐 Запуск Flask сервера...")
-            app.run(debug=True, host='0.0.0.0', port=5000)
+            app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=False)
 else:
     # Запуск через WSGI (для хостинга)
     # Инициализация базы данных при первом импорте
