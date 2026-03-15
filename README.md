@@ -52,6 +52,16 @@ http://localhost:5000
 
 Для развертывания на хостинге Beget следуйте подробной инструкции в файле [DEPLOY.md](DEPLOY.md).
 
+### Запуск по IP адресу
+
+Для запуска сайта по IP адресу без доменного имени следуйте инструкции в файле [SETUP_IP.md](SETUP_IP.md).
+
+**Быстрый старт:**
+1. Установите зависимости: `pip3 install -r requirements.txt --user --ignore-installed`
+2. Создайте симлинк: `ln -s public_html public`
+3. Перезапустите: `touch tmp/restart.txt`
+4. Откройте: `http://IP_АДРЕС/~username/avito.site/` или `http://IP_АДРЕС/`
+
 ### Настройка домена и SSL
 
 Для настройки домена **avito.site** и SSL сертификата следуйте инструкции в файле [SETUP_DOMAIN.md](SETUP_DOMAIN.md).
