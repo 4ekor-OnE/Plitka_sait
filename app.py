@@ -822,12 +822,39 @@ if __name__ == '__main__':
             init_categories()
             create_admin()
         
+        # Проверяем наличие SSL сертификатов
+        ssl_cert = os.path.join(os.path.dirname(__file__), 'ssl', 'cert.pem')
+        ssl_key = os.path.join(os.path.dirname(__file__), 'ssl', 'key.pem')
+        use_ssl = os.path.exists(ssl_cert) and os.path.exists(ssl_key)
+        
+        if use_ssl:
+            print("🔒 SSL сертификат найден, запуск с HTTPS...")
+            print("🌐 Доступ: https://avito.site:5000")
+            print("⚠️  Используется самоподписанный сертификат - браузер может показать предупреждение")
+        else:
+            print("🌐 Запуск без SSL: http://localhost:5000")
+        
+        ssl_context = (ssl_cert, ssl_key) if use_ssl else None
+        
         if socketio:
             print("📡 SocketIO включен")
-            socketio.run(app, debug=True, host='0.0.0.0', port=5000, allow_unsafe_werkzeug=True)
+            socketio.run(
+                app, 
+                debug=True, 
+                host='0.0.0.0', 
+                port=5000, 
+                allow_unsafe_werkzeug=True,
+                ssl_context=ssl_context
+            )
         else:
             print("🌐 Запуск Flask сервера...")
-            app.run(debug=True, host='0.0.0.0', port=5000, use_reloader=False)
+            app.run(
+                debug=True, 
+                host='0.0.0.0', 
+                port=5000, 
+                use_reloader=False,
+                ssl_context=ssl_context
+            )
 else:
     # Запуск через WSGI (для хостинга)
     # Инициализация базы данных при первом импорте
