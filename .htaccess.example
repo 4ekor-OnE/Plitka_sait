@@ -1,0 +1,8 @@
+# Скопируйте в .htaccess в корне сайта (рядом с passenger_wsgi.py и app.py).
+# Подставьте полный путь к интерпретатору из venv.
+
+PassengerEnabled On
+PassengerPython /home/БУКВА/ЛОГИН/КАТАЛОГ_САЙТА/venv/bin/python3
+
+# Опционально — БД и логи в tmp/ вместо instance/:
+# SetEnv AVITA_DATA_DIR /home/БУКВА/ЛОГИН/КАТАЛОГ_САЙТА/tmp

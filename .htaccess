@@ -1,8 +1,0 @@
-PassengerEnabled On
-PassengerPython /usr/bin/python3
-
-# Если используется виртуальное окружение, раскомментируйте и укажите путь:
-# PassengerPython /home/u/username/Plitka_sait/venv/bin/python3
-
-# Если используется локально собранный Python, раскомментируйте и укажите путь:
-# PassengerPython /home/u/username/.local/bin/python3

@@ -39,7 +39,10 @@ Thumbs.db
 # Uploads (optional - можно оставить если нужны примеры)
 # static/uploads/*
 
-# Hosting
+# Hosting / production (paths are local)
+.htaccess
+wsgi_pkgs/
+data/
 tmp/*
 !tmp/restart.txt
 public

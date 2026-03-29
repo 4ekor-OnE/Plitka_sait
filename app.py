@@ -4,13 +4,27 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+from werkzeug.exceptions import HTTPException
 from datetime import datetime
 import os
 import uuid
 
-app = Flask(__name__)
+app = Flask(__name__, instance_relative_config=True)
 app.config['SECRET_KEY'] = 'avita-secret-key-2024'
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///avita.db'
+
+# SQLite и app_errors.log: по умолчанию каталог instance/ (принято в Flask).
+# На хостинге при необходимости: export AVITA_DATA_DIR=$HOME/avito/tmp (writable для Passenger).
+_data_dir = os.environ.get('AVITA_DATA_DIR')
+if _data_dir:
+    _data_dir = os.path.abspath(_data_dir)
+    os.makedirs(_data_dir, exist_ok=True)
+else:
+    os.makedirs(app.instance_path, exist_ok=True)
+    _data_dir = app.instance_path
+
+app.config['AVITA_DATA_DIR'] = _data_dir
+_db_file = os.path.join(_data_dir, 'avita.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + _db_file.replace('\\', '/')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
@@ -31,6 +45,27 @@ else:
 
 # Ensure upload folder exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+
+def _append_error_log(exception):
+    """Пишет traceback в <AVITA_DATA_DIR>/app_errors.log."""
+    if exception is None or isinstance(exception, HTTPException):
+        return
+    try:
+        import traceback
+        path = os.path.join(app.config.get('AVITA_DATA_DIR', app.root_path), 'app_errors.log')
+        with open(path, "a") as logf:
+            logf.write("\n---\n")
+            traceback.print_exception(
+                type(exception), exception, exception.__traceback__, file=logf
+            )
+    except OSError:
+        pass
+
+
+@app.teardown_request
+def _teardown_log_exception(exc):
+    _append_error_log(exc)
 
 # Models
 class User(UserMixin, db.Model):
@@ -133,7 +168,7 @@ class Report(db.Model):
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.query.get(int(user_id))
+    return db.session.get(User, int(user_id))
 
 # Categories data
 CATEGORIES = {
@@ -221,7 +256,10 @@ def init_categories():
             db.session.flush()
             
             for child_name in data['children']:
-                child_slug = f"{slug}_{child_name.lower().replace(' ', '_').replace(',', '')}"
+                child_slug = "%s_%s" % (
+                    slug,
+                    child_name.lower().replace(" ", "_").replace(",", ""),
+                )
                 child = Category(name=child_name, slug=child_slug, parent_id=parent.id)
                 db.session.add(child)
         
@@ -333,7 +371,7 @@ def edit_profile():
         if 'avatar' in request.files:
             file = request.files['avatar']
             if file and file.filename:
-                filename = secure_filename(f"{uuid.uuid4()}_{file.filename}")
+                filename = secure_filename("{}_{}".format(uuid.uuid4(), file.filename))
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 current_user.avatar = filename
         
@@ -379,7 +417,7 @@ def new_ad():
             files = request.files.getlist('images')
             for file in files[:10]:  # Max 10 images
                 if file and file.filename:
-                    filename = secure_filename(f"{uuid.uuid4()}_{file.filename}")
+                    filename = secure_filename("{}_{}".format(uuid.uuid4(), file.filename))
                     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                     images.append(filename)
         
@@ -439,7 +477,7 @@ def edit_ad(ad_id):
             new_images = []
             for file in files[:10]:
                 if file and file.filename:
-                    filename = secure_filename(f"{uuid.uuid4()}_{file.filename}")
+                    filename = secure_filename("{}_{}".format(uuid.uuid4(), file.filename))
                     file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                     new_images.append(filename)
             if new_images:
@@ -796,7 +834,7 @@ if __name__ == '__main__':
     # Если запущено через Passenger - не запускаем сервер напрямую
     if is_passenger:
         print("=" * 60)
-        print("⚠️  ВНИМАНИЕ: На хостинге Beget нельзя запускать сервер напрямую!")
+        print("⚠️  ВНИМАНИЕ: На хостинге с Passenger не запускайте python app.py — используйте WSGI.")
         print("=" * 60)
         print("\nИспользуйте Passenger WSGI для запуска приложения.")
         print("Приложение уже настроено и работает через passenger_wsgi.py")
@@ -813,7 +851,7 @@ if __name__ == '__main__':
                 print("✅ База данных инициализирована успешно!")
                 print("\n✅ Готово! Приложение работает через Passenger WSGI.")
             except Exception as e:
-                print(f"ℹ️  База данных уже инициализирована или ошибка: {e}")
+                print("ℹ️  База данных уже инициализирована или ошибка: {}".format(e))
     else:
         # Локальный запуск для разработки
         print("🚀 Запуск в режиме разработки...")
