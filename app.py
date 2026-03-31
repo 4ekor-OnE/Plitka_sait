@@ -27,7 +27,35 @@ _db_file = os.path.join(_data_dir, 'avita.db')
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + _db_file.replace('\\', '/')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+# До 10 фото по 5 МБ — запас по общему размеру формы
+app.config['MAX_CONTENT_LENGTH'] = 55 * 1024 * 1024
+
+MAX_IMAGES_PER_AD = 10
+MAX_IMAGE_BYTES = 5 * 1024 * 1024
+ALLOWED_IMAGE_EXTENSIONS = frozenset({'png', 'jpg', 'jpeg', 'gif', 'webp'})
+
+
+def _save_ad_images(files):
+    """Сохраняет до MAX_IMAGES_PER_AD изображений, возвращает (список имён файлов, сообщение об ошибке или None)."""
+    saved = []
+    err = None
+    for file in files[:MAX_IMAGES_PER_AD]:
+        if not file or not file.filename:
+            continue
+        ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else ''
+        if ext not in ALLOWED_IMAGE_EXTENSIONS:
+            err = 'Допустимы только изображения: PNG, JPG, GIF, WebP'
+            continue
+        file.seek(0, os.SEEK_END)
+        size = file.tell()
+        file.seek(0)
+        if size > MAX_IMAGE_BYTES:
+            err = f'Каждый файл не больше {MAX_IMAGE_BYTES // (1024 * 1024)} МБ'
+            continue
+        filename = secure_filename("{}_{}".format(uuid.uuid4(), file.filename))
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        saved.append(filename)
+    return saved, err
 
 db = SQLAlchemy(app)
 login_manager = LoginManager(app)
@@ -415,11 +443,9 @@ def new_ad():
         images = []
         if 'images' in request.files:
             files = request.files.getlist('images')
-            for file in files[:10]:  # Max 10 images
-                if file and file.filename:
-                    filename = secure_filename("{}_{}".format(uuid.uuid4(), file.filename))
-                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                    images.append(filename)
+            images, img_err = _save_ad_images(files)
+            if img_err:
+                flash(img_err, 'error')
         
         ad = Ad(
             title=title,
@@ -474,13 +500,10 @@ def edit_ad(ad_id):
         
         if 'images' in request.files:
             files = request.files.getlist('images')
-            new_images = []
-            for file in files[:10]:
-                if file and file.filename:
-                    filename = secure_filename("{}_{}".format(uuid.uuid4(), file.filename))
-                    file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-                    new_images.append(filename)
-            if new_images:
+            new_images, img_err = _save_ad_images(files)
+            if img_err:
+                flash(img_err, 'error')
+            elif new_images:
                 ad.images = ','.join(new_images)
         
         db.session.commit()

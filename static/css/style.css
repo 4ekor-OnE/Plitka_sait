@@ -2566,8 +2566,22 @@ input, select, textarea {
 .file-input {
     position: absolute;
     inset: 0;
+    width: 100%;
+    min-height: 180px;
     opacity: 0;
     cursor: pointer;
+    z-index: 1;
+}
+
+/* Превью перекрывало прозрачный input — клики не доходили до выбора файлов (multiple). Пропускаем клики к input, кроме кнопки удаления. */
+.image-upload-area .image-preview {
+    position: relative;
+    z-index: 2;
+    pointer-events: none;
+}
+
+.image-upload-area .preview-item .remove-btn {
+    pointer-events: auto;
 }
 
 .upload-placeholder {
